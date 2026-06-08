@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MSCN Brazil Technology — Desafio Circuit Connect</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+/* ===== TEMA MSCN BRAZIL TECHNOLOGY ===== */
+:root{
+  --bg:#050b1e;--card:#091530;--card2:#0e1c3c;
+  --blue:#1a5fff;--cyan:#00ccff;--gold:#ffd700;
+  --green:#00cc66;--red:#ff3355;
+  --text:#dde8ff;--muted:#4a6898;--dim:#0d1a35;
+  --border:#1a2d5a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Segoe UI',Arial,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;overflow-x:hidden}
+
+.screen{display:none;width:100%;max-width:480px;min-height:100vh;flex-direction:column;align-items:center;padding:20px 16px}
+.screen.active{display:flex}
+
+/* Logo */
+.logo-bar{width:100%;display:flex;flex-direction:column;align-items:center;gap:4px;padding:18px 0 14px}
+.logo-icon{font-size:2.2rem;margin-bottom:2px}
+.logo-title{font-size:1.5rem;font-weight:900;letter-spacing:2px;background:linear-gradient(135deg,#4488ff,#ffd700);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-sub{font-size:.62rem;letter-spacing:3px;color:var(--muted);text-transform:uppercase}
+.logo-line{width:80px;height:2px;background:linear-gradient(90deg,#1a5fff,#ffd700);margin-top:8px;border-radius:2px}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;width:100%;margin-bottom:10px}
+.card-title{font-size:.9rem;font-weight:700;color:#7eaaff;margin-bottom:14px;letter-spacing:1px;text-transform:uppercase}
+
+/* Forms */
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.fg label{font-size:.7rem;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+.fg input{background:#060f24;border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:.9rem;font-family:inherit;outline:none;transition:border-color .2s;-webkit-appearance:none}
+.fg input:focus{border-color:var(--blue)}
+.fg .err{font-size:.7rem;color:var(--red);margin-top:2px;display:none}
+.fg.bad input{border-color:var(--red)}
+.fg.bad .err{display:block}
+
+/* Buttons */
+.btn{width:100%;padding:12px;border:none;border-radius:8px;font-family:inherit;font-size:.88rem;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.btn-gold{background:linear-gradient(135deg,#ffd700,#cc9900);color:#050b1e}
+.btn-gold:active{transform:scale(.98)}
+.btn-blue{background:linear-gradient(135deg,#1a5fff,#0044cc);color:#fff}
+.btn-blue:active{transform:scale(.98)}
+.btn-out{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-out:hover{border-color:var(--blue);color:var(--text)}
+.btn-red{background:#c0001a;color:#fff}
+.btn-sm{width:auto;padding:7px 16px;font-size:.75rem}
+
+.flex-gap{display:flex;flex-direction:column;gap:8px;width:100%}
+.row-gap{display:flex;gap:8px;width:100%}
+.row-gap .btn{flex:1}
+
+/* Messages */
+.msg{padding:10px 14px;border-radius:8px;font-size:.8rem;margin-bottom:10px;display:none}
+.msg.show{display:block}
+.msg.err{background:#300a12;border:1px solid #ff335544;color:#ff8899}
+.msg.ok{background:#0a2a18;border:1px solid #00cc6644;color:#00cc66}
+
+/* Divider */
+.dvd{width:100%;height:1px;background:var(--border);margin:10px 0}
+
+/* Link */
+.lnk{font-size:.75rem;color:var(--blue);cursor:pointer;text-decoration:underline;text-align:center;margin-top:8px;padding:4px}
+
+/* Stats row */
+.stats-row{display:flex;gap:10px;width:100%;margin-bottom:10px}
+.sbox{flex:1;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center}
+.sval{font-size:1.1rem;font-weight:700;color:#7eaaff}
+.slbl{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+
+/* Game */
+.g-header{display:flex;justify-content:space-between;align-items:center;width:100%;padding:8px 0}
+.g-timer{font-size:2rem;font-weight:900;color:var(--gold);font-family:'Courier New',monospace;text-shadow:0 0 20px #ffd70077}
+.prog-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;width:100%;margin-bottom:8px}
+.prog-fill{height:100%;background:linear-gradient(90deg,#1a5fff,#00ccff);border-radius:2px;transition:width .3s}
+
+/* Results */
+.res-time{font-size:2.8rem;font-weight:900;color:var(--gold);text-shadow:0 0 30px #ffd70077;text-align:center;font-family:'Courier New',monospace}
+.res-pos{font-size:1rem;text-align:center;margin-top:6px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.2s infinite;margin-right:5px}
+
+/* Podium */
+.podium-wrap{display:flex;align-items:flex-end;justify-content:center;gap:6px;width:100%;margin:16px 0}
+.pod{display:flex;flex-direction:column;align-items:center;gap:5px}
+.pod-name{font-size:.7rem;font-weight:700;text-align:center;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pod-time{font-size:.62rem;color:var(--muted)}
+.pod-block{border-radius:8px 8px 0 0;width:85px;display:flex;align-items:center;justify-content:center;font-size:1.6rem}
+
+/* Tables */
+.lb-table,.adm-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.lb-table th,.adm-table th{color:var(--muted);font-size:.62rem;letter-spacing:.5px;padding:7px 8px;border-bottom:1px solid var(--border);text-align:left;background:var(--dim)}
+.lb-table td,.adm-table td{padding:7px 8px;border-bottom:1px solid #0d1830;color:var(--text)}
+.lb-table tr.me td{background:#1a5fff11;color:#7eaaff}
+.lb-table tr.g1 td{color:#ffd700}
+.lb-table tr.g2 td{color:#c0c0c0}
+.lb-table tr.g3 td{color:#cd7f32}
+.adm-table tr:hover td{background:#0d1a35}
+.scroll-box{max-height:380px;overflow-y:auto;border-radius:8px;border:1px solid var(--border)}
+
+/* Badge */
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.65rem;font-weight:700}
+.b-gold{background:#ffd70022;color:#ffd700;border:1px solid #ffd70044}
+.b-silver{background:#c0c0c022;color:#c0c0c0;border:1px solid #c0c0c044}
+.b-bronze{background:#cd7f3222;color:#cd7f32;border:1px solid #cd7f3244}
+.b-none{background:#1a2a4a;color:#4a6898}
+
+/* Loading / empty */
+.loading{text-align:center;color:var(--muted);font-size:.8rem;padding:20px}
+canvas{cursor:pointer;display:block;border-radius:8px;max-width:100%;-webkit-tap-highlight-color:transparent}
+.hint-txt{font-size:.62rem;color:var(--muted);text-align:center;line-height:1.8;margin-top:6px}
+.footer{margin-top:auto;padding:14px;text-align:center;font-size:.6rem;color:#1a2a4a}
+.overlay-btn{position:fixed;bottom:20px;right:16px;z-index:99}
+</style>
+</head>
+<body>
+
+<!-- ========== LANDING ========== -->
+<div class="screen active" id="s-landing">
+  <div class="logo-bar">
+    <div class="logo-icon">🔷</div>
+    <div class="logo-title">MSCN BRAZIL</div>
+    <div class="logo-sub">Technology</div>
+    <div class="logo-line"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">⚡ Desafio Circuit Connect</div>
+    <p style="font-size:.82rem;color:var(--muted);line-height:1.7;margin-bottom:14px">
+      Monte o circuito mais rápido e ganhe! Os <strong style="color:var(--gold)">3 melhores tempos</strong>
+      serão premiados. Seu melhor resultado fica salvo — jogue quantas vezes quiser!
+    </p>
+    <div style="display:flex;gap:12px;font-size:.72rem;margin-bottom:4px">
+      <span>🥇 1º Lugar</span><span>🥈 2º Lugar</span><span>🥉 3º Lugar</span>
+    </div>
+  </div>
+  <div class="flex-gap">
+    <button class="btn btn-gold" onclick="go('s-register')">🎮 PARTICIPAR DO DESAFIO</button>
+    <button class="btn btn-blue" onclick="go('s-login')">🔑 JÁ TENHO CADASTRO</button>
+    <button class="btn btn-out" onclick="openLeaderboard()">🏆 VER PLACAR</button>
+  </div>
+  <div class="dvd"></div>
+  <button class="btn btn-out btn-sm" onclick="go('s-admin-login')" style="opacity:.4;width:100%">🔒 Acesso Admin</button>
+  <div class="footer">MSCN Brazil Technology © 2026</div>
+</div>
+
+<!-- ========== REGISTER ========== -->
+<div class="screen" id="s-register">
+  <div class="logo-bar">
+    <div class="logo-title">MSCN BRAZIL</div>
+    <div class="logo-sub">Cadastro do Participante</div>
+    <div class="logo-line"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 Criar Conta</div>
+    <div class="msg err" id="reg-err"></div>
+    <div class="fg" id="fg-rname"><label>Nome Completo</label><input id="r-name" type="text" placeholder="Seu nome completo" autocomplete="name"><span class="err">Informe seu nome completo</span></div>
+    <div class="fg" id="fg-remail"><label>E-mail</label><input id="r-email" type="email" placeholder="seu@email.com" autocomplete="email"><span class="err">E-mail inválido ou já cadastrado</span></div>
+    <div class="fg" id="fg-rphone"><label>Telefone / WhatsApp</label><input id="r-phone" type="tel" placeholder="(11) 99999-9999" autocomplete="tel"><span class="err">Número inválido — inclua o DDD</span></div>
+    <div class="fg" id="fg-rpwd"><label>Senha</label><input id="r-pwd" type="password" placeholder="Mínimo 6 caracteres"><span class="err">Mínimo 6 caracteres</span></div>
+    <div class="fg" id="fg-rpwd2"><label>Confirmar Senha</label><input id="r-pwd2" type="password" placeholder="Repita a senha"><span class="err">As senhas não coincidem</span></div>
+    <button class="btn btn-gold" onclick="doRegister()">CRIAR CONTA E JOGAR</button>
+    <div class="lnk" onclick="go('s-landing')">← Voltar</div>
+  </div>
+</div>
+
+<!-- ========== LOGIN ========== -->
+<div class="screen" id="s-login">
+  <div class="logo-bar">
+    <div class="logo-title">MSCN BRAZIL</div>
+    <div class="logo-sub">Acesso do Participante</div>
+    <div class="logo-line"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🔑 Entrar</div>
+    <div class="msg err" id="login-err"></div>
+    <div class="fg"><label>E-mail</label><input id="l-email" type="email" placeholder="seu@email.com"></div>
+    <div class="fg"><label>Senha</label><input id="l-pwd" type="password" placeholder="Sua senha"></div>
+    <button class="btn btn-blue" onclick="doLogin()">ENTRAR</button>
+    <div class="dvd"></div>
+    <button class="btn btn-gold" onclick="go('s-register')" style="width:100%">Criar conta</button>
+    <div class="lnk" onclick="go('s-landing')">← Voltar</div>
+  </div>
+</div>
+
+<!-- ========== GAME ========== -->
+<div class="screen" id="s-game">
+  <div class="logo-bar" style="padding:10px 0 6px">
+    <div class="logo-title" style="font-size:1rem">MSCN BRAZIL TECHNOLOGY</div>
+    <div class="logo-sub">Desafio Circuit Connect — 8×8</div>
+  </div>
+  <div class="g-header">
+    <div>
+      <div class="g-timer" id="g-timer">00:00</div>
+      <div style="font-size:.58rem;color:var(--muted)">TEMPO</div>
+    </div>
+    <div style="text-align:right">
+      <div id="g-user" style="font-size:.82rem;font-weight:700;color:#7eaaff;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+      <div id="g-best" style="font-size:.62rem;color:var(--muted)"></div>
+    </div>
+  </div>
+  <div class="prog-bar"><div class="prog-fill" id="g-prog" style="width:0%"></div></div>
+  <canvas id="gc"></canvas>
+  <div class="hint-txt">
+    <span style="color:#ff8844">■</span> Fonte de energia &nbsp;→&nbsp;
+    <span style="color:#44aaff">■</span> Chip alvo &bull; Toque para rotacionar as peças
+  </div>
+  <div class="dvd"></div>
+  <button class="btn btn-out btn-sm" onclick="go('s-landing')" style="width:100%">↩ Sair do Jogo</button>
+</div>
+
+<!-- ========== RESULTS ========== -->
+<div class="screen" id="s-results">
+  <div class="logo-bar">
+    <div class="logo-title">MSCN BRAZIL</div>
+    <div class="logo-sub">Resultado</div>
+    <div class="logo-line"></div>
+  </div>
+  <div style="font-size:2.5rem;text-align:center;margin:8px 0">🎉</div>
+  <div class="card" style="text-align:center">
+    <div class="card-title" style="text-align:center">✅ CIRCUITO COMPLETO!</div>
+    <div class="res-time" id="res-time">00:00</div>
+    <div class="res-pos" id="res-pos"></div>
+    <div class="dvd"></div>
+    <div id="res-best" style="font-size:.78rem;color:var(--muted);margin-bottom:14px"></div>
+    <div class="flex-gap">
+      <button class="btn btn-gold" onclick="playAgain()">🔄 JOGAR NOVAMENTE</button>
+      <button class="btn btn-blue" onclick="openLeaderboard()">🏆 VER PLACAR COMPLETO</button>
+      <button class="btn btn-out" onclick="go('s-landing')">← Início</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== LEADERBOARD ========== -->
+<div class="screen" id="s-leaderboard">
+  <div class="logo-bar">
+    <div class="logo-title">MSCN BRAZIL</div>
+    <div class="logo-sub">Placar do Desafio</div>
+    <div class="logo-line"></div>
+  </div>
+  <div class="podium-wrap" id="lb-podium"><div class="loading">Carregando...</div></div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:10px 14px;font-size:.8rem;font-weight:700;color:#7eaaff;letter-spacing:1px">CLASSIFICAÇÃO GERAL</div>
+    <div style="overflow-x:auto">
+      <table class="lb-table">
+        <thead><tr><th>Pos.</th><th>Nome</th><th>Tempo</th><th>Tentativas</th></tr></thead>
+        <tbody id="lb-body"><tr><td colspan="4" class="loading">Carregando...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="row-gap" style="margin-top:10px">
+    <button class="btn btn-blue" onclick="openLeaderboard()">↻ Atualizar</button>
+    <button class="btn btn-out" onclick="go('s-landing')">← Início</button>
+  </div>
+  <div class="footer">MSCN Brazil Technology © 2026</div>
+</div>
+
+<!-- ========== ADMIN LOGIN ========== -->
+<div class="screen" id="s-admin-login">
+  <div class="logo-bar">
+    <div class="logo-title">MSCN BRAZIL</div>
+    <div class="logo-sub">Área Administrativa</div>
+    <div class="logo-line"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🔒 Acesso Admin</div>
+    <div class="msg err" id="adm-err"></div>
+    <div class="fg"><label>Usuário</label><input id="adm-u" type="text" placeholder="mscn_admin"></div>
+    <div class="fg"><label>Senha</label><input id="adm-p" type="password" placeholder="senha"></div>
+    <button class="btn btn-blue" onclick="doAdminLogin()">ENTRAR</button>
+    <div class="lnk" onclick="go('s-landing')">← Voltar</div>
+  </div>
+</div>
+
+<!-- ========== ADMIN DASHBOARD ========== -->
+<div class="screen" id="s-admin">
+  <div class="logo-bar" style="padding:10px 0 6px">
+    <div class="logo-title" style="font-size:1rem">MSCN BRAZIL — ADMIN</div>
+    <div style="font-size:.62rem;color:var(--muted)"><span class="live-dot"></span>ATUALIZAÇÃO EM TEMPO REAL</div>
+  </div>
+  <div class="stats-row">
+    <div class="sbox"><div class="sval" id="adm-total">—</div><div class="slbl">Participantes</div></div>
+    <div class="sbox"><div class="sval" id="adm-done">—</div><div class="slbl">Finalizaram</div></div>
+    <div class="sbox"><div class="sval" id="adm-best">—</div><div class="slbl">Melhor Tempo</div></div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden;width:100%">
+    <div style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:.78rem;font-weight:700;color:#7eaaff">PARTICIPANTES</span>
+      <button class="btn btn-out btn-sm" onclick="exportCSV()">📥 Exportar CSV</button>
+    </div>
+    <div class="scroll-box" style="border:none;border-radius:0">
+      <table class="adm-table">
+        <thead><tr><th>Pos.</th><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Melhor Tempo</th><th>Tent.</th><th>Cadastro</th></tr></thead>
+        <tbody id="adm-body"><tr><td colspan="7" class="loading">Carregando...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="row-gap" style="margin-top:10px">
+    <button class="btn btn-out btn-sm" onclick="go('s-landing')" style="flex:1">← Sair</button>
+    <button class="btn btn-red btn-sm" onclick="clearAll()">🗑 Zerar dados</button>
+  </div>
+  <div class="footer">MSCN Brazil Technology © 2026</div>
+</div>
+
+<script>
+// ================================================================
+//  ⚠️  COLE SUAS CREDENCIAIS DO FIREBASE AQUI ⚠️
+// ================================================================
+const firebaseConfig = {
+  apiKey:            "AIzaSyA1B-BsxzjBt4l4f5p-K7_nCFPfjBFyqSA",
+  authDomain:        "mscn-desafio.firebaseapp.com",
+  projectId:         "mscn-desafio",
+  storageBucket:     "mscn-desafio.firebasestorage.app",
+  messagingSenderId: "333835568407",
+  appId:             "1:333835568407:web:85bd89a044c97493c96352",
+  measurementId:     "G-BVYPG2DDLZ"
+};
+// ================================================================
+//  CREDENCIAIS DO ADMIN — altere se quiser
+// ================================================================
+const ADMIN_USER = "mscn_admin";
+const ADMIN_PASS = "MSCN@2026";
+// ================================================================
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const COLL = "players"; // nome da coleção no Firestore
+
+let currentUser = null;
+let adminUnsub = null; // listener em tempo real
+
+// ---------- HELPERS ----------
+const $ = id => document.getElementById(id);
+const fmt = s => {
+  if(s === null || s === undefined) return '—';
+  let m = Math.floor(s/60), sec = Math.floor(s%60);
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+};
+const fmtFull = s => {
+  let m=Math.floor(s/60),sec=Math.floor(s%60),ms=Math.round((s%1)*100);
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${String(ms).padStart(2,'0')}`;
+};
+const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmtDate = ts => {
+  if(!ts) return '—';
+  let d = ts.toDate ? ts.toDate() : new Date(ts);
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+};
+const isEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+const isPhone = p => p.replace(/\D/g,'').length >= 10;
+
+// ---------- NAVEGAÇÃO ----------
+function go(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+  window.scrollTo(0, 0);
+  if(id !== 's-admin' && adminUnsub) { adminUnsub(); adminUnsub = null; }
+}
+
+function showMsg(elId, msg, type='err') {
+  let el = $(elId);
+  el.textContent = msg;
+  el.className = `msg ${type} show`;
+}
+
+function clearBad() {
+  document.querySelectorAll('.fg.bad').forEach(el => el.classList.remove('bad'));
+}
+
+function setBad(id, msg) {
+  let el = $(id);
+  el.classList.add('bad');
+  if(msg) { let e = el.querySelector('.err'); if(e) e.textContent = msg; }
+}
+
+// ---------- FIRESTORE HELPERS ----------
+async function findByEmail(email) {
+  const snap = await db.collection(COLL).where('email','==',email.toLowerCase()).get();
+  if(snap.empty) return null;
+  const doc = snap.docs[0];
+  return { id: doc.id, ...doc.data() };
+}
+
+async function getAllPlayers() {
+  const snap = await db.collection(COLL).get();
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+function sortedByTime(players) {
+  let done = players.filter(p=>p.bestTime).sort((a,b)=>a.bestTime-b.bestTime);
+  let none = players.filter(p=>!p.bestTime).sort((a,b)=>(a.registeredAt||0)-(b.registeredAt||0));
+  return [...done, ...none];
+}
+
+// ---------- REGISTER ----------
+async function doRegister() {
+  clearBad();
+  let name  = $('r-name').value.trim();
+  let email = $('r-email').value.trim().toLowerCase();
+  let phone = $('r-phone').value.trim();
+  let pwd   = $('r-pwd').value;
+  let pwd2  = $('r-pwd2').value;
+  let ok = true;
+
+  if(name.length < 3)   { setBad('fg-rname'); ok=false; }
+  if(!isEmail(email))   { setBad('fg-remail'); ok=false; }
+  if(!isPhone(phone))   { setBad('fg-rphone'); ok=false; }
+  if(pwd.length < 6)    { setBad('fg-rpwd'); ok=false; }
+  if(pwd !== pwd2)      { setBad('fg-rpwd2'); ok=false; }
+  if(!ok) return;
+
+  let btn = document.querySelector('#s-register .btn-gold');
+  btn.textContent = 'Verificando...'; btn.disabled = true;
+
+  try {
+    let existing = await findByEmail(email);
+    if(existing) { setBad('fg-remail','E-mail já cadastrado'); btn.textContent='CRIAR CONTA E JOGAR'; btn.disabled=false; return; }
+
+    let doc = await db.collection(COLL).add({
+      name, email, phone, pwd,
+      bestTime: null, completedAt: null,
+      attempts: 0,
+      registeredAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    currentUser = { id: doc.id, name, email, phone, pwd, bestTime: null, attempts: 0 };
+    btn.textContent='CRIAR CONTA E JOGAR'; btn.disabled=false;
+    startGame();
+  } catch(e) {
+    showMsg('reg-err','Erro ao criar conta. Verifique a conexão.');
+    btn.textContent='CRIAR CONTA E JOGAR'; btn.disabled=false;
+  }
+}
+
+// ---------- LOGIN ----------
+async function doLogin() {
+  let email = $('l-email').value.trim().toLowerCase();
+  let pwd   = $('l-pwd').value;
+  $('login-err').className='msg err';
+  if(!email||!pwd) { showMsg('login-err','Preencha todos os campos'); return; }
+
+  let btn = document.querySelector('#s-login .btn-blue');
+  btn.textContent='Entrando...'; btn.disabled=true;
+
+  try {
+    let player = await findByEmail(email);
+    if(!player || player.pwd !== pwd) { showMsg('login-err','E-mail ou senha incorretos'); btn.textContent='ENTRAR'; btn.disabled=false; return; }
+    currentUser = player;
+    btn.textContent='ENTRAR'; btn.disabled=false;
+    startGame();
+  } catch(e) {
+    showMsg('login-err','Erro de conexão. Tente novamente.');
+    btn.textContent='ENTRAR'; btn.disabled=false;
+  }
+}
+
+// ---------- ADMIN ----------
+function doAdminLogin() {
+  let u = $('adm-u').value.trim();
+  let p = $('adm-p').value;
+  if(u===ADMIN_USER && p===ADMIN_PASS) { loadAdmin(); }
+  else { showMsg('adm-err','Usuário ou senha incorretos'); }
+}
+
+function loadAdmin() {
+  go('s-admin');
+  if(adminUnsub) adminUnsub();
+
+  adminUnsub = db.collection(COLL).onSnapshot(snap => {
+    let players = snap.docs.map(d=>({id:d.id,...d.data()}));
+    let sorted  = sortedByTime(players);
+    let ranked  = players.filter(p=>p.bestTime).sort((a,b)=>a.bestTime-b.bestTime);
+
+    $('adm-total').textContent = players.length;
+    $('adm-done').textContent  = ranked.length;
+    $('adm-best').textContent  = ranked.length ? fmt(ranked[0].bestTime) : '—';
+
+    $('adm-body').innerHTML = players.length===0
+      ? '<tr><td colspan="7" class="loading">Sem participantes ainda</td></tr>'
+      : sorted.map(p => {
+          let pos = p.bestTime ? ranked.findIndex(r=>r.id===p.id)+1 : null;
+          let badge = pos===1?'<span class="badge b-gold">🥇 1º</span>'
+                    : pos===2?'<span class="badge b-silver">🥈 2º</span>'
+                    : pos===3?'<span class="badge b-bronze">🥉 3º</span>'
+                    : pos?`<span class="badge b-none">#${pos}</span>`
+                    : '<span class="badge b-none">—</span>';
+          return `<tr>
+            <td>${badge}</td>
+            <td style="font-weight:600">${esc(p.name)}</td>
+            <td style="color:#4a8aaa;font-size:.7rem">${esc(p.email)}</td>
+            <td>${esc(p.phone)}</td>
+            <td style="color:#ffd700;font-family:monospace;font-weight:700">${p.bestTime?fmt(p.bestTime):'—'}</td>
+            <td>${p.attempts||0}</td>
+            <td style="color:var(--muted)">${fmtDate(p.registeredAt)}</td>
+          </tr>`;
+        }).join('');
+  });
+}
+
+async function clearAll() {
+  if(!confirm('Zerar TODOS os dados dos participantes? Esta ação não pode ser desfeita.')) return;
+  let snap = await db.collection(COLL).get();
+  let batch = db.batch();
+  snap.docs.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+}
+
+async function exportCSV() {
+  let players = await getAllPlayers();
+  let ranked  = players.filter(p=>p.bestTime).sort((a,b)=>a.bestTime-b.bestTime);
+  let sorted  = sortedByTime(players);
+  let rows    = [['Posição','Nome','E-mail','Telefone','Melhor Tempo (s)','Tentativas','Cadastro']];
+  sorted.forEach(p => {
+    let pos = p.bestTime ? ranked.findIndex(r=>r.id===p.id)+1 : '—';
+    rows.push([pos, p.name, p.email, p.phone,
+      p.bestTime ? p.bestTime.toFixed(2) : '—',
+      p.attempts||0,
+      fmtDate(p.registeredAt)]);
+  });
+  let csv  = rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  let blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  let a    = document.createElement('a');
+  a.href   = URL.createObjectURL(blob);
+  a.download = 'mscn-desafio-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+// ===================== GAME ENGINE =====================
+const DIRS=[[-1,0],[0,1],[1,0],[0,-1]], OPP=[2,3,0,1];
+let N=8, CS=52, grid=[], conn=[], gameWon=false;
+let gameStart=null, gameTiv=null, totalSecs=0;
+
+const rng = n => Math.floor(Math.random()*n);
+function shuf(a){a=[...a];for(let i=a.length-1;i>0;i--){let j=rng(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
+
+function generate(n){
+  let sol=Array.from({length:n},()=>Array.from({length:n},()=>[]));
+  let vis=Array.from({length:n},()=>Array(n).fill(false));
+  let stk=[[0,0,shuf([0,1,2,3]),0]]; vis[0][0]=true;
+  while(stk.length){
+    let top=stk[stk.length-1],[r,c,dirs,i]=top;
+    if(i>=dirs.length){stk.pop();continue}
+    top[3]++;
+    let d=dirs[i],[dr,dc]=DIRS[d],nr=r+dr,nc=c+dc;
+    if(nr>=0&&nr<n&&nc>=0&&nc<n&&!vis[nr][nc]){
+      sol[r][c].push(d);sol[nr][nc].push(OPP[d]);
+      vis[nr][nc]=true;stk.push([nr,nc,shuf([0,1,2,3]),0]);
+    }
+  }
+  return Array.from({length:n},(_,r)=>Array.from({length:n},(_,c)=>({s:sol[r][c].sort(),rot:rng(4)})));
+}
+
+function cd(cell){return cell.s.map(d=>(d+cell.rot)%4)}
+
+function bfs(){
+  conn=Array.from({length:N},()=>Array(N).fill(false));
+  conn[0][0]=true; let q=[[0,0]];
+  while(q.length){
+    let[r,c]=q.shift();
+    for(let d of cd(grid[r][c])){
+      let[dr,dc]=DIRS[d],nr=r+dr,nc=c+dc;
+      if(nr<0||nr>=N||nc<0||nc>=N||conn[nr][nc])continue;
+      if(cd(grid[nr][nc]).includes(OPP[d])){conn[nr][nc]=true;q.push([nr,nc]);}
+    }
+  }
+  let tot=N*N, cnt=conn.flat().filter(Boolean).length;
+  $('g-prog').style.width=Math.round(cnt/tot*100)+'%';
+  gameWon = cnt===tot;
+}
+
+function drawCell(ctx,r,c){
+  let x=c*CS,y=r*CS,cx2=x+CS/2,cy2=y+CS/2,h=CS/2;
+  let isC=conn[r][c],isSrc=r===0&&c===0,isDst=r===N-1&&c===N-1;
+  let dirs=cd(grid[r][c]);
+
+  ctx.fillStyle='#060b1a'; ctx.fillRect(x,y,CS,CS);
+  ctx.fillStyle='#0a1028';
+  for(let i=1;i<4;i++)for(let j=1;j<4;j++)ctx.fillRect(x+i*(CS/4)-.5,y+j*(CS/4)-.5,1,1);
+
+  ctx.lineWidth=CS*.24;ctx.lineCap='butt';ctx.strokeStyle='#0b1030';
+  for(let d of dirs){let[dr,dc]=DIRS[d];ctx.beginPath();ctx.moveTo(cx2,cy2);ctx.lineTo(cx2+dc*h,cy2+dr*h);ctx.stroke()}
+
+  ctx.lineWidth=CS*.14;ctx.lineCap='round';
+  if(isC){ctx.strokeStyle='#1a5fff';ctx.shadowColor='#1a5fff';ctx.shadowBlur=CS*.22}
+  else{ctx.strokeStyle='#15214a';ctx.shadowBlur=0}
+  for(let d of dirs){let[dr,dc]=DIRS[d];ctx.beginPath();ctx.moveTo(cx2,cy2);ctx.lineTo(cx2+dc*h,cy2+dr*h);ctx.stroke()}
+  ctx.shadowBlur=0;
+
+  let vs=CS*.065;
+  for(let d of dirs){
+    let[dr,dc]=DIRS[d],px=cx2+dc*h,py=cy2+dr*h;
+    if(isC){ctx.fillStyle='#1a5fff';ctx.shadowColor='#00ccff';ctx.shadowBlur=6}
+    else{ctx.fillStyle='#15214a';ctx.shadowBlur=0}
+    ctx.fillRect(px-vs,py-vs,vs*2,vs*2);
+  }
+  ctx.shadowBlur=0;
+
+  let pr=CS*.12;
+  ctx.beginPath();ctx.arc(cx2,cy2,pr,0,Math.PI*2);
+  if(isSrc){ctx.fillStyle='#ff6600';ctx.shadowColor='#ff8800';ctx.shadowBlur=20}
+  else if(isDst){ctx.fillStyle='#00aaff';ctx.shadowColor='#0088ff';ctx.shadowBlur=20}
+  else if(isC){ctx.fillStyle='#1a5fff';ctx.shadowColor='#00ccff';ctx.shadowBlur=14}
+  else{ctx.fillStyle='#15214a';ctx.shadowBlur=0}
+  ctx.fill();ctx.shadowBlur=0;
+
+  if(isSrc||isDst){
+    let col=isSrc?'#ff8844':'#44aaff';
+    ctx.strokeStyle=col;ctx.lineWidth=CS*.04;ctx.shadowColor=col;ctx.shadowBlur=12;
+    ctx.beginPath();ctx.arc(cx2,cy2,pr*1.8,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;
+  }
+  ctx.strokeStyle='#0c1530';ctx.lineWidth=.5;ctx.strokeRect(x+.5,y+.5,CS-1,CS-1);
+}
+
+function drawCanvas(){
+  let cv=$('gc'),ctx=cv.getContext('2d');
+  ctx.fillStyle='#050918';ctx.fillRect(0,0,cv.width,cv.height);
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++)drawCell(ctx,r,c);
+}
+
+function onCanvasClick(e){
+  e.preventDefault(); if(gameWon)return;
+  let cv=$('gc'),rect=cv.getBoundingClientRect();
+  let sx=cv.width/rect.width,sy=cv.height/rect.height;
+  let cx=(e.touches?e.touches[0].clientX:e.clientX)-rect.left;
+  let cy=(e.touches?e.touches[0].clientY:e.clientY)-rect.top;
+  let col=Math.floor(cx*sx/CS),row=Math.floor(cy*sy/CS);
+  if(row>=0&&row<N&&col>=0&&col<N){
+    grid[row][col].rot=(grid[row][col].rot+1)%4;
+    bfs();drawCanvas();
+    if(gameWon)onWin();
+  }
+}
+
+function startGame(){
+  go('s-game');
+  $('g-user').textContent = currentUser.name;
+  $('g-best').textContent = currentUser.bestTime ? `Melhor: ${fmt(currentUser.bestTime)}` : 'Primeira tentativa';
+
+  let avail=Math.min(window.innerWidth-36,window.innerHeight-220,520);
+  CS=Math.max(35,Math.floor(avail/N));
+  let cv=$('gc');cv.width=N*CS;cv.height=N*CS;
+
+  grid=generate(N);gameWon=false;
+  bfs();drawCanvas();
+  $('g-prog').style.width='0%';
+  $('g-timer').textContent='00:00';
+  clearInterval(gameTiv);
+  gameStart=Date.now();totalSecs=0;
+  gameTiv=setInterval(()=>{
+    totalSecs=(Date.now()-gameStart)/1000;
+    let m=Math.floor(totalSecs/60),s=Math.floor(totalSecs%60);
+    $('g-timer').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  },100);
+}
+
+async function onWin(){
+  clearInterval(gameTiv);
+  let finalTime=(Date.now()-gameStart)/1000;
+  let ref=db.collection(COLL).doc(currentUser.id);
+
+  // Busca dados atuais
+  let snap=await ref.get();
+  let data=snap.data();
+  let isNewBest=!data.bestTime||finalTime<data.bestTime;
+  let update={attempts:firebase.firestore.FieldValue.increment(1)};
+  if(isNewBest){update.bestTime=finalTime;update.completedAt=firebase.firestore.FieldValue.serverTimestamp();}
+  await ref.update(update);
+
+  // Atualiza currentUser localmente
+  currentUser.attempts=(currentUser.attempts||0)+1;
+  if(isNewBest)currentUser.bestTime=finalTime;
+
+  // Posição
+  let all=await getAllPlayers();
+  let ranked=all.filter(p=>p.bestTime).sort((a,b)=>a.bestTime-b.bestTime);
+  let pos=ranked.findIndex(p=>p.id===currentUser.id)+1;
+  showResults(finalTime,pos,isNewBest,currentUser.bestTime);
+}
+
+function showResults(time,pos,isNew,best){
+  go('s-results');
+  $('res-time').textContent=fmt(time);
+  let medals=['','🥇','🥈','🥉'];
+  let posEl=$('res-pos');
+  posEl.textContent=pos<=3?`${medals[pos]} Você está em ${pos}º lugar!`:`Você está em ${pos}º lugar — continue tentando!`;
+  posEl.style.color=pos===1?'#ffd700':pos===2?'#c0c0c0':pos===3?'#cd7f32':'#7eaaff';
+  $('res-best').textContent=isNew?`✨ Novo recorde pessoal! Seu melhor: ${fmt(best)}`:`Seu melhor tempo: ${fmt(best)}`;
+}
+
+function playAgain(){if(currentUser)startGame();}
+
+// ---------- LEADERBOARD ----------
+async function openLeaderboard(){
+  go('s-leaderboard');
+  let all=await getAllPlayers();
+  let ranked=sortedByTime(all);
+  let top=all.filter(p=>p.bestTime).sort((a,b)=>a.bestTime-b.bestTime);
+
+  // Podium
+  let pod=$('lb-podium');
+  if(top.length===0){pod.innerHTML='<div class="loading" style="width:100%">Nenhum resultado ainda. Seja o primeiro!</div>';}
+  else{
+    let order=[1,0,2],heights=[70,90,55],colors=['#c0c0c0','#ffd700','#cd7f32'],medals=['🥈','🥇','🥉'];
+    pod.innerHTML='<div style="display:flex;align-items:flex-end;justify-content:center;gap:6px;width:100%">'
+      +order.map(i=>{
+        let p=top[i]; if(!p)return'';
+        let col=colors[i],h=heights[i],medal=medals[i];
+        return `<div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+          <div style="font-size:.7rem;font-weight:700;color:${col};max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center">${esc(p.name.split(' ')[0])}</div>
+          <div style="font-size:.62rem;color:var(--muted)">${fmt(p.bestTime)}</div>
+          <div style="height:${h}px;width:82px;background:${col}18;border:1px solid ${col}55;border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:1.5rem">${medal}</div>
+        </div>`;
+      }).join('')+'</div>';
+  }
+
+  // Table
+  let myId=currentUser?currentUser.id:null;
+  let tbody=$('lb-body');
+  if(ranked.length===0){tbody.innerHTML='<tr><td colspan="4" class="loading">Sem participantes ainda</td></tr>';return}
+  tbody.innerHTML=ranked.map(p=>{
+    let pos=p.bestTime?top.findIndex(r=>r.id===p.id)+1:null;
+    let me=p.id===myId;
+    let cls=me?'me':pos===1?'g1':pos===2?'g2':pos===3?'g3':'';
+    let medal=pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':'';
+    return `<tr class="${cls}">
+      <td>${medal||`#${pos||'—'}`}</td>
+      <td>${esc(p.name)}${me?' <span style="font-size:.6rem;color:var(--blue)">(você)</span>':''}</td>
+      <td style="font-family:monospace">${p.bestTime?fmt(p.bestTime):'—'}</td>
+      <td>${p.attempts||0}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ===================== EVENTOS =====================
+$('gc').addEventListener('click',onCanvasClick);
+$('gc').addEventListener('touchstart',onCanvasClick,{passive:false});
+$('l-pwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+$('adm-p').addEventListener('keydown',e=>{if(e.key==='Enter')doAdminLogin()});
+window.addEventListener('resize',()=>{
+  if($('s-game').classList.contains('active')&&currentUser){
+    let avail=Math.min(window.innerWidth-36,window.innerHeight-220,520);
+    CS=Math.max(35,Math.floor(avail/N));
+    let cv=$('gc');cv.width=N*CS;cv.height=N*CS;drawCanvas();
+  }
+});
+</script>
+</body>
+</html>
