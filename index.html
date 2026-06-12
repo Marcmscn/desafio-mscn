@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>MSCN Brazil Technology — Desafio Circuit Connect</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+/* ===== CORES MSCN BRAZIL TECHNOLOGY ===== */
+:root{
+  --bg:#0a0a0a;--card:#141414;--card2:#1c1c1c;
+  --orange:#ff6600;--orange2:#ff8833;--odim:#ff660018;--ob:#ff660055;
+  --text:#c8c8c8;--muted:#606060;--border:#282828;
+  --red:#cc2200;--green:#009933;--white:#f0f0f0;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Segoe UI',Arial,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;overflow-x:hidden}
+.screen{display:none;width:100%;max-width:460px;min-height:100vh;flex-direction:column;align-items:center;padding:14px}
+.screen.active{display:flex}
+
+/* Logo */
+.logo-bar{width:100%;display:flex;flex-direction:column;align-items:center;gap:3px;padding:16px 0 12px}
+.logo-icon{width:64px;height:64px;background:radial-gradient(circle,#2a2a2a,#0a0a0a);border:2px solid var(--ob);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;box-shadow:0 0 20px var(--ob)}
+.logo-title{font-size:1.6rem;font-weight:900;letter-spacing:3px;color:#888;text-transform:uppercase;margin-top:4px}
+.logo-sub{font-size:.6rem;letter-spacing:4px;color:var(--orange);text-transform:uppercase;font-weight:600}
+.logo-line{width:80px;height:1px;background:linear-gradient(90deg,transparent,var(--orange),transparent);margin-top:6px}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;width:100%;margin-bottom:9px}
+.card-title{font-size:.8rem;font-weight:700;color:var(--orange);margin-bottom:12px;letter-spacing:2px;text-transform:uppercase}
+
+/* Forms */
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.fg label{font-size:.65rem;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+.fg input{background:#0d0d0d;border:1px solid var(--border);border-radius:7px;padding:9px 12px;color:var(--text);font-size:.88rem;font-family:inherit;outline:none;transition:border-color .2s;-webkit-appearance:none;width:100%}
+.fg input:focus{border-color:var(--orange)}
+.fg .err{font-size:.65rem;color:var(--red);margin-top:2px;display:none}
+.fg.bad input{border-color:var(--red)}
+.fg.bad .err{display:block}
+
+/* Buttons */
+.btn{width:100%;padding:11px;border:none;border-radius:8px;font-family:inherit;font-size:.86rem;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .15s;margin-bottom:6px}
+.btn:last-child{margin-bottom:0}
+.btn-orange{background:linear-gradient(135deg,#ff6600,#cc4400);color:#fff;box-shadow:0 2px 12px #ff660033}
+.btn-orange:active{transform:scale(.98)}
+.btn-gray{background:#1e1e1e;border:1px solid #333;color:var(--text)}
+.btn-gray:hover{border-color:var(--orange);color:var(--orange)}
+.btn-out{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-out:hover{border-color:var(--orange);color:var(--text)}
+.btn-red{background:#aa0011;color:#fff}
+.btn-green{background:#006622;color:#fff}
+.btn-sm{padding:7px 13px;font-size:.73rem;width:auto}
+.row-gap{display:flex;gap:6px;width:100%}
+.row-gap .btn{flex:1;margin-bottom:0}
+.flex-gap{display:flex;flex-direction:column;gap:6px;width:100%}
+
+/* Messages */
+.msg{padding:9px 12px;border-radius:7px;font-size:.76rem;margin-bottom:9px;display:none}
+.msg.show{display:block}
+.msg.err{background:#2a0000;border:1px solid #cc220044;color:#ff8866}
+.msg.ok{background:#002211;border:1px solid #00993344;color:#00cc66}
+.dvd{width:100%;height:1px;background:var(--border);margin:8px 0}
+.lnk{font-size:.72rem;color:var(--orange);cursor:pointer;text-decoration:underline;text-align:center;padding:6px;margin-top:2px;opacity:.8}
+.lnk:hover{opacity:1}
+
+/* Stats */
+.stats-row{display:flex;gap:7px;width:100%;margin-bottom:9px}
+.sbox{flex:1;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center}
+.sval{font-size:1rem;font-weight:700;color:var(--orange)}
+.slbl{font-size:.54rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+
+/* Game */
+.g-header{display:flex;justify-content:space-between;align-items:center;width:100%;padding:5px 0}
+.g-timer{font-size:1.9rem;font-weight:900;color:var(--orange);font-family:'Courier New',monospace;text-shadow:0 0 20px #ff660077}
+.prog-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;width:100%;margin-bottom:6px}
+.prog-fill{height:100%;background:linear-gradient(90deg,#ff6600,#ff8833);border-radius:2px;transition:width .3s}
+canvas{cursor:pointer;display:block;border-radius:8px;max-width:100%;touch-action:none;border:1px solid #1e1e1e}
+.hint-txt{font-size:.58rem;color:var(--muted);text-align:center;line-height:1.8;margin-top:5px}
+
+/* Music toggle */
+.music-btn{position:fixed;top:10px;right:10px;background:#1c1c1c;border:1px solid var(--border);border-radius:20px;padding:5px 10px;font-size:.7rem;color:var(--muted);cursor:pointer;z-index:100;transition:all .2s}
+.music-btn:hover{border-color:var(--orange);color:var(--orange)}
+.music-btn.on{color:var(--orange);border-color:var(--ob)}
+
+/* Tables */
+.lb-table,.adm-table{width:100%;border-collapse:collapse;font-size:.75rem}
+.lb-table th,.adm-table th{color:var(--muted);font-size:.58rem;letter-spacing:.4px;padding:6px 7px;border-bottom:1px solid var(--border);text-align:left;background:var(--card2);position:sticky;top:0}
+.lb-table td,.adm-table td{padding:6px 7px;border-bottom:1px solid #181818;color:var(--text)}
+.lb-table tr.me td{background:#ff660011;color:#ff9955}
+.lb-table tr.g1 td{color:#ff6600}.lb-table tr.g2 td{color:#aaa}.lb-table tr.g3 td{color:#996633}
+.adm-table tr:hover td{background:#181818}
+.scroll-box{max-height:320px;overflow-y:auto;border-radius:8px;border:1px solid var(--border)}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 6px;border-radius:10px;font-size:.6rem;font-weight:700}
+.b-gold{background:#ff660022;color:#ff6600;border:1px solid #ff660044}
+.b-silver{background:#aaaaaa22;color:#aaa;border:1px solid #aaaaaa44}
+.b-bronze{background:#99663322;color:#996633;border:1px solid #99663344}
+.b-none{background:#1e1e1e;color:#555}
+
+/* Congrats */
+@keyframes pop{0%{transform:scale(.5);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+@keyframes glow{0%,100%{text-shadow:0 0 20px #ff660066}50%{text-shadow:0 0 40px #ff6600cc,0 0 60px #ff660044}}
+.congrats-emoji{font-size:3rem;text-align:center;animation:pop .5s ease-out}
+.congrats-time{font-size:2.8rem;font-weight:900;color:var(--orange);text-align:center;font-family:'Courier New',monospace;animation:glow 2s infinite}
+.congrats-pos{font-size:1.1rem;font-weight:700;text-align:center;margin-top:6px;animation:pop .6s ease-out}
+.mini-lb{width:100%;border-collapse:collapse;font-size:.75rem;margin-top:8px}
+.mini-lb td{padding:5px 7px;border-bottom:1px solid #1e1e1e}
+.mini-lb tr.hl td{background:#ff660011;color:#ff6600;font-weight:700}
+.mini-lb tr.hlme td{background:#ff660018;color:#ff9955;font-weight:700}
+
+/* Podium */
+.podium-wrap{display:flex;align-items:flex-end;justify-content:center;gap:5px;width:100%;margin:10px 0}
+
+/* Admin pwd */
+.pwd-section{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px;width:100%;margin-top:8px}
+
+/* Misc */
+.loading{text-align:center;color:var(--muted);font-size:.76rem;padding:16px}
+.footer{margin-top:auto;padding:10px;text-align:center;font-size:.55rem;color:#2a2a2a}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--orange);animation:pulse 1.2s infinite;margin-right:4px}
+</style>
+</head>
+<body>
+
+<button class="music-btn" id="music-btn" onclick="toggleMusic()">🎵 SOM: OFF</button>
+
+<!-- LANDING -->
+<div class="screen active" id="s-land">
+  <div class="logo-bar">
+    <div class="logo-icon">⚡</div>
+    <div class="logo-title">MSCN</div>
+    <div class="logo-sub">Brazil Technology</div>
+    <div class="logo-line"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🔌 Desafio Circuit Connect</div>
+    <p style="font-size:.78rem;color:var(--muted);line-height:1.7;margin-bottom:10px">
+      Monte o circuito mais rápido e ganhe! Os <strong style="color:var(--orange)">3 melhores tempos</strong> serão premiados. Seu recorde fica salvo — jogue quantas vezes quiser!
+    </p>
+    <div style="display:flex;gap:14px;font-size:.7rem;color:var(--muted)">
+      <span>🥇 1º Lugar</span><span>🥈 2º Lugar</span><span>🥉 3º Lugar</span>
+    </div>
+  </div>
+  <div class="flex-gap">
+    <button class="btn btn-orange" onclick="go('s-reg')">🎮 PARTICIPAR DO DESAFIO</button>
+    <button class="btn btn-gray" onclick="go('s-login')">🔑 JÁ TENHO CADASTRO</button>
+    <button class="btn btn-out" onclick="openLB()">🏆 VER PLACAR</button>
+  </div>
+  <div class="dvd"></div>
+  <button class="btn btn-out btn-sm" onclick="go('s-adm-login')" style="width:100%;opacity:.3">🔒 Admin</button>
+  <div class="footer">MSCN Brazil Technology © 2026</div>
+</div>
+
+<!-- REGISTER -->
+<div class="screen" id="s-reg">
+  <div class="logo-bar"><div class="logo-title">MSCN</div><div class="logo-sub">Cadastro do Participante</div><div class="logo-line"></div></div>
+  <div class="card">
+    <div class="card-title">📋 Criar Conta</div>
+    <div class="msg err" id="reg-err"></div>
+    <div class="fg" id="fg-rn"><label>Nome Completo</label><input id="r-name" type="text" placeholder="Seu nome completo" autocomplete="name"><span class="err">Informe seu nome completo</span></div>
+    <div class="fg" id="fg-re"><label>E-mail</label><input id="r-email" type="email" placeholder="seu@email.com" autocomplete="email"><span class="err">E-mail inválido ou já cadastrado</span></div>
+    <div class="fg" id="fg-rp"><label>Telefone / WhatsApp</label><input id="r-phone" type="tel" placeholder="(11) 99999-9999" autocomplete="tel"><span class="err">Informe um número com DDD</span></div>
+    <div class="fg" id="fg-rw"><label>Senha</label><input id="r-pwd" type="password" placeholder="Mínimo 6 caracteres"><span class="err">Mínimo 6 caracteres</span></div>
+    <div class="fg" id="fg-rw2"><label>Confirmar Senha</label><input id="r-pwd2" type="password" placeholder="Repita a senha"><span class="err">As senhas não coincidem</span></div>
+    <button class="btn btn-orange" id="reg-btn" onclick="doReg()">CRIAR CONTA E JOGAR</button>
+    <div class="lnk" onclick="go('s-land')">← Voltar</div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div class="screen" id="s-login">
+  <div class="logo-bar"><div class="logo-title">MSCN</div><div class="logo-sub">Acesso do Participante</div><div class="logo-line"></div></div>
+  <div class="card">
+    <div class="card-title">🔑 Entrar</div>
+    <div class="msg err" id="login-err"></div>
+    <div class="fg"><label>E-mail</label><input id="l-email" type="email" placeholder="seu@email.com"></div>
+    <div class="fg"><label>Senha</label><input id="l-pwd" type="password" placeholder="Sua senha"></div>
+    <button class="btn btn-gray" onclick="doLogin()">ENTRAR</button>
+    <div class="dvd"></div>
+    <button class="btn btn-orange" onclick="go('s-reg')">Criar conta</button>
+    <div class="lnk" onclick="go('s-land')">← Voltar</div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="s-game">
+  <div class="logo-bar" style="padding:6px 0 4px">
+    <div class="logo-title" style="font-size:.85rem">MSCN BRAZIL TECHNOLOGY</div>
+    <div class="logo-sub" style="font-size:.55rem">Circuit Connect — Difícil 10×10</div>
+  </div>
+  <div class="g-header">
+    <div><div class="g-timer" id="g-timer">00:00</div><div style="font-size:.5rem;color:var(--muted)">TEMPO</div></div>
+    <div style="text-align:right">
+      <div id="g-user" style="font-size:.76rem;font-weight:700;color:var(--orange);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+      <div id="g-best" style="font-size:.58rem;color:var(--muted)"></div>
+    </div>
+  </div>
+  <div class="prog-bar"><div class="prog-fill" id="g-prog" style="width:0%"></div></div>
+  <canvas id="gc"></canvas>
+  <div class="hint-txt">
+    <span style="color:#ff6600">■</span> Fonte &nbsp;→&nbsp;
+    <span style="color:#ffffff">■</span> Chip &bull; Toque para rotacionar
+  </div>
+  <div class="dvd"></div>
+  <button class="btn btn-out btn-sm" onclick="go('s-land')" style="width:100%">↩ Sair</button>
+</div>
+
+<!-- CONGRATS -->
+<div class="screen" id="s-congrats">
+  <div class="logo-bar"><div class="logo-title">MSCN</div><div class="logo-sub">Parabéns!</div><div class="logo-line"></div></div>
+  <div class="congrats-emoji" id="c-emoji">🎉</div>
+  <div class="card" style="text-align:center;margin-top:8px">
+    <div style="font-size:.75rem;color:var(--muted)" id="c-name"></div>
+    <div style="font-size:.7rem;color:var(--muted);margin:4px 0 8px">você completou o circuito em</div>
+    <div class="congrats-time" id="c-time">00:00</div>
+    <div class="congrats-pos" id="c-pos"></div>
+    <div class="dvd"></div>
+    <div style="font-size:.7rem;color:var(--orange);font-weight:700;letter-spacing:1px;margin-bottom:6px">TOP 5 — PLACAR ATUAL</div>
+    <table class="mini-lb" id="c-minilb"></table>
+    <div class="dvd"></div>
+    <div id="c-best" style="font-size:.73rem;color:var(--muted);margin-bottom:10px"></div>
+    <button class="btn btn-orange" onclick="playAgain()">🔄 JOGAR NOVAMENTE</button>
+    <button class="btn btn-gray" onclick="openLB()">🏆 PLACAR COMPLETO</button>
+    <button class="btn btn-out" onclick="go('s-land')">← Início</button>
+  </div>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="screen" id="s-lb">
+  <div class="logo-bar"><div class="logo-title">MSCN</div><div class="logo-sub">Placar do Desafio</div><div class="logo-line"></div></div>
+  <div class="podium-wrap" id="lb-pod"><div class="loading">Carregando...</div></div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:8px 13px;font-size:.76rem;font-weight:700;color:var(--orange);letter-spacing:1px">CLASSIFICAÇÃO GERAL</div>
+    <div class="scroll-box" style="border:none;border-radius:0;overflow-x:auto">
+      <table class="lb-table">
+        <thead><tr><th>Pos.</th><th>Nome</th><th>Tempo</th><th>Finalizado em</th><th>Tent.</th></tr></thead>
+        <tbody id="lb-body"><tr><td colspan="5" class="loading">Carregando...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="row-gap" style="margin-top:8px">
+    <button class="btn btn-orange" onclick="openLB()">↻ Atualizar</button>
+    <button class="btn btn-out" onclick="go('s-land')">← Início</button>
+  </div>
+  <div class="footer">MSCN Brazil Technology © 2026</div>
+</div>
+
+<!-- ADMIN LOGIN -->
+<div class="screen" id="s-adm-login">
+  <div class="logo-bar"><div class="logo-title">MSCN</div><div class="logo-sub">Área Administrativa</div><div class="logo-line"></div></div>
+  <div class="card">
+    <div class="card-title">🔒 Acesso Admin</div>
+    <div class="msg err" id="adm-err"></div>
+    <div class="fg"><label>Usuário</label><input id="adm-u" type="text" placeholder="mscn_admin"></div>
+    <div class="fg"><label>Senha</label><input id="adm-p" type="password" placeholder="senha"></div>
+    <button class="btn btn-gray" onclick="doAdmLogin()">ENTRAR</button>
+    <div class="lnk" onclick="go('s-land')">← Voltar</div>
+  </div>
+</div>
+
+<!-- ADMIN DASHBOARD -->
+<div class="screen" id="s-adm">
+  <div class="logo-bar" style="padding:6px 0 4px">
+    <div class="logo-title" style="font-size:.9rem">MSCN — ADMIN</div>
+    <div style="font-size:.58rem;color:var(--muted)"><span class="live-dot"></span>TEMPO REAL</div>
+  </div>
+  <div class="stats-row">
+    <div class="sbox"><div class="sval" id="adm-total">0</div><div class="slbl">Cadastrados</div></div>
+    <div class="sbox"><div class="sval" id="adm-done">0</div><div class="slbl">Finalizaram</div></div>
+    <div class="sbox"><div class="sval" id="adm-best">—</div><div class="slbl">Melhor Tempo</div></div>
+  </div>
+  <div class="row-gap" style="margin-bottom:8px">
+    <button class="btn btn-out btn-sm" onclick="exportCSV()" style="flex:1">📥 CSV</button>
+    <button class="btn btn-out btn-sm" onclick="zerarPlacar()" style="flex:1;color:#ff9944;border-color:#ff994466">🔄 Zerar Placar</button>
+    <button class="btn btn-red btn-sm" onclick="zerarTudo()">🗑 Tudo</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden;width:100%">
+    <div style="padding:8px 12px;font-size:.74rem;font-weight:700;color:var(--orange);letter-spacing:1px">PARTICIPANTES</div>
+    <div class="scroll-box" style="border:none;border-radius:0">
+      <table class="adm-table">
+        <thead><tr><th>Pos.</th><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Melhor Tempo</th><th>Finalizado em</th><th>Tent.</th><th>Cadastro</th></tr></thead>
+        <tbody id="adm-body"><tr><td colspan="8" class="loading">Carregando...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="pwd-section">
+    <div style="font-size:.74rem;font-weight:700;color:var(--orange);margin-bottom:10px;letter-spacing:1px">🔑 ALTERAR SENHA ADMIN</div>
+    <div class="msg err" id="pwd-err"></div>
+    <div class="msg ok" id="pwd-ok"></div>
+    <div class="fg"><label>Senha Atual</label><input id="pwd-cur" type="password" placeholder="Senha atual"></div>
+    <div class="fg"><label>Nova Senha</label><input id="pwd-new" type="password" placeholder="Mínimo 6 caracteres"></div>
+    <div class="fg"><label>Confirmar Nova Senha</label><input id="pwd-new2" type="password" placeholder="Repita a nova senha"></div>
+    <button class="btn btn-green btn-sm" onclick="changePwd()" style="width:100%">SALVAR NOVA SENHA</button>
+  </div>
+  <div class="row-gap" style="margin-top:8px">
+    <button class="btn btn-out btn-sm" onclick="admLogout()" style="flex:1">← Sair</button>
+  </div>
+  <div class="footer">MSCN Brazil Technology © 2026</div>
+</div>
+
+<script>
+// ===== FIREBASE =====
+const firebaseConfig = {
+  apiKey:            "AIzaSyA1B-BsxzjBt4l4f5p-K7_nCFPfjBFyqSA",
+  authDomain:        "mscn-desafio.firebaseapp.com",
+  projectId:         "mscn-desafio",
+  storageBucket:     "mscn-desafio.firebasestorage.app",
+  messagingSenderId: "333835568407",
+  appId:             "1:333835568407:web:85bd89a044c97493c96352"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const PLAYERS = 'players';
+const CONFIG  = 'config';
+
+// ===== ADMIN CONFIG =====
+const ADMIN_USER = 'mscn_admin';
+const DEFAULT_PASS = 'MSCN@2026';
+
+async function getAdminPass() {
+  try {
+    const doc = await db.collection(CONFIG).doc('admin').get();
+    return doc.exists ? doc.data().pass : DEFAULT_PASS;
+  } catch(e) { return DEFAULT_PASS; }
+}
+async function setAdminPass(newPass) {
+  await db.collection(CONFIG).doc('admin').set({ pass: newPass });
+}
+
+// ===== UTILS =====
+const $ = id => document.getElementById(id);
+const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const isEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+const isPhone = p => p.replace(/\D/g,'').length >= 10;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
+const fmt = s => {
+  if(!s && s!==0) return '—';
+  return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+};
+const fmtDT = ts => {
+  if(!ts) return '—';
+  let d = ts.toDate ? ts.toDate() : new Date(ts);
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+};
+
+// ===== NAV =====
+let me = null, admUnsub = null;
+function go(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+  window.scrollTo(0,0);
+  if(id !== 's-adm' && admUnsub) { admUnsub(); admUnsub = null; }
+  if(id !== 's-game') stopMusic();
+}
+function showMsg(id, txt, type='err') { let e=$(id); e.textContent=txt; e.className=`msg ${type} show`; }
+function hideMsg(id) { let e=$(id); e.className='msg ' + (id.includes('ok') ? 'ok' : 'err'); }
+function clearBad() { document.querySelectorAll('.fg.bad').forEach(e=>e.classList.remove('bad')); }
+function bad(id, msg) { let e=$(id); e.classList.add('bad'); if(msg){let x=e.querySelector('.err');if(x)x.textContent=msg;} }
+
+// ===== AUTH =====
+async function doReg() {
+  clearBad();
+  let name=$('r-name').value.trim(), email=$('r-email').value.trim().toLowerCase();
+  let phone=$('r-phone').value.trim(), pwd=$('r-pwd').value, pwd2=$('r-pwd2').value;
+  let ok=true;
+  if(name.length<3){bad('fg-rn');ok=false}
+  if(!isEmail(email)){bad('fg-re');ok=false}
+  if(!isPhone(phone)){bad('fg-rp');ok=false}
+  if(pwd.length<6){bad('fg-rw');ok=false}
+  if(pwd!==pwd2){bad('fg-rw2');ok=false}
+  if(!ok)return;
+  let btn=$('reg-btn'); btn.textContent='Verificando...'; btn.disabled=true;
+  try {
+    const timeout = new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),10000));
+    const snap = await Promise.race([
+      db.collection(PLAYERS).where('email','==',email).get(),
+      timeout
+    ]);
+    if(!snap.empty){bad('fg-re','E-mail já cadastrado');btn.textContent='CRIAR CONTA E JOGAR';btn.disabled=false;return;}
+    const ref = await Promise.race([
+      db.collection(PLAYERS).add({
+        name, email, phone, pwd,
+        bestTime: null, finishedAt: null, attempts: 0,
+        registeredAt: firebase.firestore.FieldValue.serverTimestamp()
+      }),
+      new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),10000))
+    ]);
+    me = {id:ref.id, name, email, phone, pwd, bestTime:null, attempts:0};
+    btn.textContent='CRIAR CONTA E JOGAR'; btn.disabled=false;
+    startGame();
+  } catch(e) {
+    btn.textContent='CRIAR CONTA E JOGAR'; btn.disabled=false;
+    if(e.message==='timeout'){
+      showMsg('reg-err','⏱ Conexão lenta. Aguarde 30 segundos e tente novamente.');
+    } else {
+      showMsg('reg-err','Erro ao conectar. Verifique sua internet.');
+    }
+  }
+}
+
+async function doLogin() {
+  let email=$('l-email').value.trim().toLowerCase(), pwd=$('l-pwd').value;
+  $('login-err').className='msg err';
+  if(!email||!pwd){showMsg('login-err','Preencha todos os campos');return}
+  try {
+    const snap = await db.collection(PLAYERS).where('email','==',email).where('pwd','==',pwd).get();
+    if(snap.empty){showMsg('login-err','E-mail ou senha incorretos');return}
+    const doc = snap.docs[0];
+    me = {id:doc.id, ...doc.data()};
+    startGame();
+  } catch(e) { showMsg('login-err','Erro de conexão. Tente novamente.'); }
+}
+
+// ===== ADMIN =====
+async function doAdmLogin() {
+  let u=$('adm-u').value.trim(), p=$('adm-p').value;
+  const pass = await getAdminPass();
+  if(u===ADMIN_USER && p===pass) loadAdm();
+  else showMsg('adm-err','Usuário ou senha incorretos');
+}
+function admLogout() { if(admUnsub){admUnsub();admUnsub=null;} go('s-land'); }
+
+function loadAdm() {
+  go('s-adm');
+  if(admUnsub) admUnsub();
+  admUnsub = db.collection(PLAYERS).onSnapshot(snap => {
+    let players = snap.docs.map(d=>({id:d.id,...d.data()}));
+    let ranked = players.filter(p=>p.bestTime).sort((a,b)=>a.bestTime-b.bestTime);
+    let sorted = [...ranked, ...players.filter(p=>!p.bestTime).sort((a,b)=>{
+      let at = a.registeredAt?.toDate?.()?.getTime()||0;
+      let bt = b.registeredAt?.toDate?.()?.getTime()||0;
+      return at-bt;
+    })];
+    $('adm-total').textContent = players.length;
+    $('adm-done').textContent  = ranked.length;
+    $('adm-best').textContent  = ranked.length ? fmt(ranked[0].bestTime) : '—';
+    $('adm-body').innerHTML = !players.length
+      ? '<tr><td colspan="8" class="loading">Nenhum participante ainda</td></tr>'
+      : sorted.map(p=>{
+          let pos = p.bestTime ? ranked.findIndex(r=>r.id===p.id)+1 : null;
+          let badge = pos===1?'<span class="badge b-gold">🥇 1º</span>'
+                    : pos===2?'<span class="badge b-silver">🥈 2º</span>'
+                    : pos===3?'<span class="badge b-bronze">🥉 3º</span>'
+                    : pos?`<span class="badge b-none">#${pos}</span>`:'<span class="badge b-none">—</span>';
+          return `<tr>
+            <td>${badge}</td>
+            <td style="font-weight:600">${esc(p.name)}</td>
+            <td style="color:#555;font-size:.66rem">${esc(p.email)}</td>
+            <td>${esc(p.phone)}</td>
+            <td style="color:#ff6600;font-family:monospace;font-weight:700">${fmt(p.bestTime)}</td>
+            <td style="color:#555;font-size:.66rem">${fmtDT(p.finishedAt)}</td>
+            <td>${p.attempts||0}</td>
+            <td style="color:#333;font-size:.64rem">${fmtDT(p.registeredAt)}</td>
+          </tr>`;
+        }).join('');
+  });
+}
+
+async function zerarPlacar() {
+  if(!confirm('Zerar apenas os placares (mantém cadastros)?'))return;
+  const snap = await db.collection(PLAYERS).get();
+  const batch = db.batch();
+  snap.docs.forEach(d => batch.update(d.ref,{bestTime:null,finishedAt:null,attempts:0}));
+  await batch.commit();
+}
+async function zerarTudo() {
+  if(!confirm('Zerar TUDO incluindo cadastros? Não pode ser desfeito!'))return;
+  const snap = await db.collection(PLAYERS).get();
+  const batch = db.batch();
+  snap.docs.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+}
+
+async function changePwd() {
+  $('pwd-err').className='msg err'; $('pwd-ok').className='msg ok';
+  let cur=$('pwd-cur').value, nw=$('pwd-new').value, nw2=$('pwd-new2').value;
+  const pass = await getAdminPass();
+  if(cur !== pass) { showMsg('pwd-err','Senha atual incorreta'); return; }
+  if(nw.length < 6) { showMsg('pwd-err','Nova senha: mínimo 6 caracteres'); return; }
+  if(nw !== nw2) { showMsg('pwd-err','As novas senhas não coincidem'); return; }
+  await setAdminPass(nw);
+  $('pwd-cur').value=''; $('pwd-new').value=''; $('pwd-new2').value='';
+  showMsg('pwd-ok','✅ Senha alterada com sucesso!','ok');
+}
+
+async function exportCSV() {
+  const snap = await db.collection(PLAYERS).get();
+  let players = snap.docs.map(d=>({id:d.id,...d.data()}));
+  let ranked = players.filter(p=>p.bestTime).sort((a,b)=>a.bestTime-b.bestTime);
+  let sorted = [...ranked,...players.filter(p=>!p.bestTime)];
+  let rows=[['Posição','Nome','E-mail','Telefone','Melhor Tempo','Finalizado em','Tentativas','Cadastro']];
+  sorted.forEach(p=>{
+    let pos=p.bestTime?ranked.findIndex(r=>r.id===p.id)+1:'—';
+    rows.push([pos,p.name,p.email,p.phone,p.bestTime?fmt(p.bestTime):'—',fmtDT(p.finishedAt),p.attempts||0,fmtDT(p.registeredAt)]);
+  });
+  let csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  let blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mscn-desafio.csv';a.click();
+}
+
+// ===== LEADERBOARD =====
+async function openLB() {
+  go('s-lb');
+  const snap = await db.collection(PLAYERS).get();
+  let players = snap.docs.map(d=>({id:d.id,...d.data()}));
+  let ranked = players.filter(p=>p.bestTime).sort((a,b)=>a.bestTime-b.bestTime);
+  let all = [...ranked,...players.filter(p=>!p.bestTime)];
+  let pod=$('lb-pod');
+  if(!ranked.length){pod.innerHTML='<div class="loading" style="width:100%">Nenhum resultado ainda — seja o primeiro! 🚀</div>';}
+  else{
+    let order=[1,0,2],heights=[68,86,52],colors=['#aaaaaa','#ff6600','#996633'],medals=['🥈','🥇','🥉'];
+    pod.innerHTML='<div style="display:flex;align-items:flex-end;justify-content:center;gap:5px;width:100%">'+order.map(i=>{
+      let p=ranked[i];if(!p)return'';
+      return`<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+        <div style="font-size:.66rem;font-weight:700;color:${colors[i]};max-width:86px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center">${esc(p.name.split(' ')[0])}</div>
+        <div style="font-size:.58rem;color:#555">${fmt(p.bestTime)}</div>
+        <div style="height:${heights[i]}px;width:80px;background:${colors[i]}18;border:1px solid ${colors[i]}44;border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:1.3rem">${medals[i]}</div>
+      </div>`;
+    }).join('')+'</div>';
+  }
+  let myId=me?me.id:null;
+  $('lb-body').innerHTML=!all.length
+    ?'<tr><td colspan="5" class="loading">Sem participantes ainda</td></tr>'
+    :all.map(p=>{
+        let pos=p.bestTime?ranked.findIndex(r=>r.id===p.id)+1:null;
+        let medal=pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':'';
+        let cls=p.id===myId?'me':pos===1?'g1':pos===2?'g2':pos===3?'g3':'';
+        return`<tr class="${cls}">
+          <td>${medal||`#${pos||'—'}`}</td>
+          <td>${esc(p.name)}${p.id===myId?' <span style="font-size:.56rem;color:#ff6600">(você)</span>':''}</td>
+          <td style="font-family:monospace">${fmt(p.bestTime)}</td>
+          <td style="font-size:.66rem;color:#555">${fmtDT(p.finishedAt)}</td>
+          <td>${p.attempts||0}</td>
+        </tr>`;
+      }).join('');
+}
+
+// ===== 8-BIT MUSIC =====
+let audioCtx=null, musicGain=null, musicPlaying=false, musicScheduler=null;
+let songPos=0, nextNoteTime=0;
+const BPM=148, S=((60/BPM)/4); // 16th note in seconds
+
+// "Circuit Breaker" — Composição original 8-bit
+const SONG=[
+  [880,2],[0,1],[784,1],[659,2],[784,2],[0,2],
+  [659,2],[0,1],[587,1],[523,2],[587,2],[0,2],
+  [698,2],[659,1],[587,1],[659,2],[698,2],[0,2],
+  [587,2],[0,2],[523,2],[0,2],[440,4],[0,4],
+  [880,4],[784,2],[659,2],[784,4],[0,4],
+  [659,4],[587,2],[523,2],[587,4],[0,4],
+  [698,2],[659,2],[587,2],[659,2],[698,2],[784,2],[880,4],
+  [880,2],[784,2],[659,2],[587,2],[523,8],
+  [523,2],[587,2],[659,2],[698,2],[784,2],[880,2],[784,2],[659,2],
+  [698,2],[784,2],[880,4],[784,2],[698,2],[659,4],
+  [587,2],[659,2],[698,2],[784,2],[880,4],[784,4],
+  [659,2],[587,2],[523,2],[587,2],[659,8],[0,8],
+];
+
+function initAudio(){
+  if(audioCtx)return;
+  audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  musicGain=audioCtx.createGain();
+  musicGain.gain.value=0.1;
+  musicGain.connect(audioCtx.destination);
+}
+function scheduleNote(freq,start,dur){
+  if(!freq)return;
+  const osc=audioCtx.createOscillator();
+  const g=audioCtx.createGain();
+  osc.type='square'; osc.frequency.value=freq;
+  osc.connect(g); g.connect(musicGain);
+  g.gain.setValueAtTime(0.3,start);
+  g.gain.exponentialRampToValueAtTime(0.001,start+dur*0.88);
+  osc.start(start); osc.stop(start+dur);
+}
+function schedulerLoop(){
+  while(nextNoteTime < audioCtx.currentTime+0.25){
+    let [freq,dur16]=SONG[songPos%SONG.length];
+    scheduleNote(freq, nextNoteTime, dur16*S);
+    nextNoteTime+=dur16*S;
+    songPos++;
+  }
+  if(musicPlaying) musicScheduler=setTimeout(schedulerLoop,100);
+}
+function startMusic(){
+  initAudio();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+  if(musicPlaying)return;
+  musicPlaying=true; songPos=0; nextNoteTime=audioCtx.currentTime+0.1;
+  schedulerLoop();
+  $('music-btn').textContent='🎵 SOM: ON'; $('music-btn').classList.add('on');
+}
+function stopMusic(){
+  musicPlaying=false;
+  clearTimeout(musicScheduler);
+  $('music-btn').textContent='🎵 SOM: OFF'; $('music-btn').classList.remove('on');
+}
+function toggleMusic(){
+  if(musicPlaying) stopMusic();
+  else if($('s-game').classList.contains('active')) startMusic();
+}
+
+// ===== GAME ENGINE (10×10 DIFÍCIL) =====
+const DIRS=[[-1,0],[0,1],[1,0],[0,-1]], OPP=[2,3,0,1];
+const N=10; let CS=40, grid=[], conn=[], won=false;
+let gStart=null, gTiv=null, gSecs=0;
+
+const rng=n=>Math.floor(Math.random()*n);
+function shuf(a){a=[...a];for(let i=a.length-1;i>0;i--){let j=rng(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
+function genGrid(n){
+  let sol=Array.from({length:n},()=>Array.from({length:n},()=>[]));
+  let vis=Array.from({length:n},()=>Array(n).fill(false));
+  let stk=[[0,0,shuf([0,1,2,3]),0]]; vis[0][0]=true;
+  while(stk.length){
+    let top=stk[stk.length-1],[r,c,dirs,i]=top;
+    if(i>=dirs.length){stk.pop();continue}
+    top[3]++;
+    let d=dirs[i],[dr,dc]=DIRS[d],nr=r+dr,nc=c+dc;
+    if(nr>=0&&nr<n&&nc>=0&&nc<n&&!vis[nr][nc]){
+      sol[r][c].push(d);sol[nr][nc].push(OPP[d]);
+      vis[nr][nc]=true;stk.push([nr,nc,shuf([0,1,2,3]),0]);
+    }
+  }
+  return Array.from({length:n},(_,r)=>Array.from({length:n},(_,c)=>({s:sol[r][c].sort(),rot:rng(3)+1})));
+}
+function cd(cell){return cell.s.map(d=>(d+cell.rot)%4)}
+function bfs(){
+  conn=Array.from({length:N},()=>Array(N).fill(false));
+  conn[0][0]=true; let q=[[0,0]];
+  while(q.length){
+    let[r,c]=q.shift();
+    for(let d of cd(grid[r][c])){
+      let[dr,dc]=DIRS[d],nr=r+dr,nc=c+dc;
+      if(nr<0||nr>=N||nc<0||nc>=N||conn[nr][nc])continue;
+      if(cd(grid[nr][nc]).includes(OPP[d])){conn[nr][nc]=true;q.push([nr,nc]);}
+    }
+  }
+  let cnt=conn.flat().filter(Boolean).length;
+  $('g-prog').style.width=Math.round(cnt/(N*N)*100)+'%';
+  won=cnt===N*N;
+}
+function drawCell(ctx,r,c){
+  let x=c*CS,y=r*CS,cx2=x+CS/2,cy2=y+CS/2,h=CS/2;
+  let isC=conn[r][c],isSrc=r===0&&c===0,isDst=r===N-1&&c===N-1;
+  let dirs=cd(grid[r][c]);
+  ctx.fillStyle='#0a0a0a'; ctx.fillRect(x,y,CS,CS);
+  ctx.fillStyle='#111';
+  for(let i=1;i<4;i++)for(let j=1;j<4;j++)ctx.fillRect(x+i*(CS/4)-.5,y+j*(CS/4)-.5,1,1);
+  ctx.lineWidth=CS*.22;ctx.lineCap='butt';ctx.strokeStyle='#141414';
+  for(let d of dirs){let[dr,dc]=DIRS[d];ctx.beginPath();ctx.moveTo(cx2,cy2);ctx.lineTo(cx2+dc*h,cy2+dr*h);ctx.stroke()}
+  ctx.lineWidth=CS*.13;ctx.lineCap='round';
+  if(isC){ctx.strokeStyle='#ff6600';ctx.shadowColor='#ff6600';ctx.shadowBlur=CS*.22}
+  else{ctx.strokeStyle='#222';ctx.shadowBlur=0}
+  for(let d of dirs){let[dr,dc]=DIRS[d];ctx.beginPath();ctx.moveTo(cx2,cy2);ctx.lineTo(cx2+dc*h,cy2+dr*h);ctx.stroke()}
+  ctx.shadowBlur=0;
+  let vs=CS*.058;
+  for(let d of dirs){
+    let[dr,dc]=DIRS[d],px=cx2+dc*h,py=cy2+dr*h;
+    if(isC){ctx.fillStyle='#ff6600';ctx.shadowColor='#ff8800';ctx.shadowBlur=5}
+    else{ctx.fillStyle='#222';ctx.shadowBlur=0}
+    ctx.fillRect(px-vs,py-vs,vs*2,vs*2);
+  }
+  ctx.shadowBlur=0;
+  let pr=CS*.1;
+  ctx.beginPath();ctx.arc(cx2,cy2,pr,0,Math.PI*2);
+  if(isSrc){ctx.fillStyle='#ff6600';ctx.shadowColor='#ff6600';ctx.shadowBlur=18}
+  else if(isDst){ctx.fillStyle='#ffffff';ctx.shadowColor='#ffffff';ctx.shadowBlur=18}
+  else if(isC){ctx.fillStyle='#ff6600';ctx.shadowColor='#ff8800';ctx.shadowBlur=12}
+  else{ctx.fillStyle='#1e1e1e';ctx.shadowBlur=0}
+  ctx.fill();ctx.shadowBlur=0;
+  if(isSrc||isDst){
+    let col=isSrc?'#ff6600':'#ffffff';
+    ctx.strokeStyle=col;ctx.lineWidth=CS*.035;ctx.shadowColor=col;ctx.shadowBlur=10;
+    ctx.beginPath();ctx.arc(cx2,cy2,pr*1.75,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0;
+  }
+  ctx.strokeStyle='#151515';ctx.lineWidth=.5;ctx.strokeRect(x+.5,y+.5,CS-1,CS-1);
+}
+function drawCanvas(){
+  let cv=$('gc'),ctx=cv.getContext('2d');
+  ctx.fillStyle='#0a0a0a';ctx.fillRect(0,0,cv.width,cv.height);
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++)drawCell(ctx,r,c);
+}
+function onTap(e){
+  e.preventDefault();if(won)return;
+  let cv=$('gc'),rect=cv.getBoundingClientRect();
+  let sx=cv.width/rect.width,sy=cv.height/rect.height;
+  let cx=(e.touches?e.touches[0].clientX:e.clientX)-rect.left;
+  let cy=(e.touches?e.touches[0].clientY:e.clientY)-rect.top;
+  let col=Math.floor(cx*sx/CS),row=Math.floor(cy*sy/CS);
+  if(row>=0&&row<N&&col>=0&&col<N){grid[row][col].rot=(grid[row][col].rot+1)%4;bfs();drawCanvas();if(won)onWin();}
+}
+function startGame(){
+  go('s-game');
+  $('g-user').textContent=me.name;
+  $('g-best').textContent=me.bestTime?`Melhor: ${fmt(me.bestTime)}`:'Primeira tentativa';
+  let avail=Math.min(window.innerWidth-28,window.innerHeight-200,480);
+  CS=Math.max(30,Math.floor(avail/N));
+  let cv=$('gc');cv.width=N*CS;cv.height=N*CS;
+  grid=genGrid(N);won=false;bfs();drawCanvas();
+  $('g-prog').style.width='0%';$('g-timer').textContent='00:00';
+  clearInterval(gTiv);gStart=Date.now();gSecs=0;
+  gTiv=setInterval(()=>{
+    gSecs=(Date.now()-gStart)/1000;
+    $('g-timer').textContent=`${String(Math.floor(gSecs/60)).padStart(2,'0')}:${String(Math.floor(gSecs%60)).padStart(2,'0')}`;
+  },100);
+  startMusic();
+}
+async function onWin(){
+  clearInterval(gTiv);
+  stopMusic();
+  let finalTime=(Date.now()-gStart)/1000;
+  let ref=db.collection(PLAYERS).doc(me.id);
+  let doc=await ref.get(); let data=doc.data();
+  let isNew=!data.bestTime||finalTime<data.bestTime;
+  let upd={attempts:firebase.firestore.FieldValue.increment(1)};
+  if(isNew){upd.bestTime=finalTime;upd.finishedAt=firebase.firestore.FieldValue.serverTimestamp();}
+  await ref.update(upd);
+  me.attempts=(me.attempts||0)+1;
+  if(isNew)me.bestTime=finalTime;
+  const snap=await db.collection(PLAYERS).get();
+  let all=snap.docs.map(d=>({id:d.id,...d.data()}));
+  let ranked=all.filter(p=>p.bestTime).sort((a,b)=>a.bestTime-b.bestTime);
+  let pos=ranked.findIndex(p=>p.id===me.id)+1;
+  showCongrats(finalTime,pos,isNew,me.bestTime,ranked);
+}
+function showCongrats(time,pos,isNew,best,ranked){
+  go('s-congrats');
+  let emoji=pos===1?'🏆':pos===2?'🥈':pos===3?'🥉':'🎉';
+  $('c-emoji').textContent=emoji;
+  $('c-name').textContent=`Parabéns, ${me.name.split(' ')[0]}!`;
+  $('c-time').textContent=fmt(time);
+  let el=$('c-pos');
+  let labels=['','🥇 1º LUGAR!','🥈 2º LUGAR!','🥉 3º LUGAR!'];
+  el.textContent=pos<=3?labels[pos]:`🎯 ${pos}º lugar`;
+  el.style.color=pos===1?'#ff6600':pos===2?'#aaa':pos===3?'#996633':'#888';
+  $('c-best').textContent=isNew?`✨ Novo recorde pessoal! Melhor: ${fmt(best)}`:`Seu melhor tempo: ${fmt(best)} — tente superar!`;
+  let top5=ranked.slice(0,5);
+  $('c-minilb').innerHTML=top5.length?top5.map((p,i)=>{
+    let medal=['🥇','🥈','🥉','4º','5º'][i];
+    let cls=p.id===me.id?'hlme':i===0?'hl':'';
+    return`<tr class="${cls}"><td>${medal}</td><td>${esc(p.name.split(' ')[0])}</td><td style="font-family:monospace">${fmt(p.bestTime)}</td></tr>`;
+  }).join(''):'<tr><td colspan="3" style="text-align:center;color:#444;padding:8px">Você é o primeiro! 🚀</td></tr>';
+}
+function playAgain(){if(me)startGame()}
+
+// ===== EVENTOS =====
+$('gc').addEventListener('click',onTap);
+$('gc').addEventListener('touchstart',onTap,{passive:false});
+$('l-pwd').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+$('adm-p').addEventListener('keydown',e=>{if(e.key==='Enter')doAdmLogin()});
+window.addEventListener('resize',()=>{
+  if($('s-game').classList.contains('active')&&me){
+    let avail=Math.min(window.innerWidth-28,window.innerHeight-200,480);
+    CS=Math.max(30,Math.floor(avail/N));
+    let cv=$('gc');cv.width=N*CS;cv.height=N*CS;drawCanvas();
+  }
+});
+</script>
+</body>
+</html>
